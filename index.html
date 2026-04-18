@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e14" />
+  <title>AI Arcade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="maze.css" />
+  <link rel="stylesheet" href="tycoon.css" />
+  <link rel="stylesheet" href="jump.css" />
+</head>
+<body>
+  <div id="arcade-view" class="arcade-view">
+    <p class="arcade-update" id="arcade-update" aria-label="Arcade update number" title="Bump ARCADE_UPDATE in arcade.js when you ship changes"></p>
+    <header class="arcade-header">
+      <p class="arcade-kicker">Local · one page</p>
+      <h1 class="arcade-title">AI Arcade</h1>
+      <p class="arcade-sub">Choose a cabinet — more games plug in here later.</p>
+    </header>
+    <ul class="game-list" id="game-list" role="list"></ul>
+  </div>
+
+  <div id="game-shell-orbital" class="game-shell hidden" hidden>
+    <div class="frame">
+      <header class="hud">
+        <div class="brand-block">
+          <div class="brand">Orbital Drift</div>
+          <div class="rank-line" id="rank-line" aria-live="polite"></div>
+        </div>
+        <div class="stats">
+          <span id="score">0</span>
+          <span class="sep">·</span>
+          <span id="combo">×1</span>
+          <span class="sep">·</span>
+          <span id="run-time" class="run-time">0:00</span>
+          <span class="sep">·</span>
+          <span class="best-wrap">best <span id="best">0</span></span>
+        </div>
+      </header>
+      <canvas
+        id="game"
+        tabindex="0"
+        width="900"
+        height="600"
+        role="img"
+        aria-label="Orbital Drift: steer on the ring, collect shards, avoid rocks. Keys: A D or arrows steer, Space or P pause, R restart, Enter start from menu."
+      ></canvas>
+      <p class="hint" id="hint">
+        Graze window (amber ring) · Rush + objectives · Touch or drag to steer · A D / arrows · Enter / click Start · Space or P pause · R restart
+      </p>
+      <footer class="footer">
+        <button type="button" class="btn-back" data-arcade-back>← Arcade</button>
+        <button type="button" id="mute" aria-pressed="false">Sound on</button>
+      </footer>
+    </div>
+    <div id="overlay" class="overlay hidden">
+      <div class="panel">
+        <h1 id="overlay-title">Orbital Drift</h1>
+        <p id="overlay-text">
+          Orbit the planet, grab cyan shards for combo scoring, graze rocks to charge Rush (next shard ×2), and complete three objectives each run. Progress saves only on this device.
+        </p>
+        <p class="score-line" id="overlay-score"></p>
+        <p class="overlay-meta" id="overlay-meta"></p>
+        <div class="top-runs" id="top-runs" aria-label="Local top scores"></div>
+        <div class="overlay-actions">
+          <button type="button" class="btn-secondary" id="copy-score" hidden>
+            Copy run summary
+          </button>
+          <button type="button" id="start">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-shell-flux" class="game-shell hidden" hidden>
+    <div class="frame">
+      <header class="hud">
+        <div class="brand-block">
+          <div class="brand">Flux Lane</div>
+          <div class="rank-line" id="flux-tagline">Streak · near-miss · flux multiplier</div>
+        </div>
+        <div class="stats">
+          <span id="flux-score">0</span>
+          <span class="sep">·</span>
+          <span id="flux-streak-wrap" class="flux-streak-wrap">flux <span id="flux-streak">×1</span></span>
+          <span class="sep">·</span>
+          <span class="best-wrap">best <span id="flux-best">0</span></span>
+        </div>
+      </header>
+      <canvas
+        id="game-flux"
+        tabindex="0"
+        width="900"
+        height="600"
+        role="img"
+        aria-label="Flux Lane: move up and down to slip through gates. Keys W S or arrows."
+      ></canvas>
+      <p class="hint" id="flux-hint"></p>
+      <footer class="footer">
+        <button type="button" class="btn-back" data-arcade-back>← Arcade</button>
+        <button type="button" id="flux-mute" aria-pressed="false">Sound on</button>
+      </footer>
+    </div>
+    <div id="flux-overlay" class="overlay hidden">
+      <div class="panel">
+        <h1 id="flux-overlay-title">Flux Lane</h1>
+        <p id="flux-overlay-text"></p>
+        <p class="score-line" id="flux-overlay-score" hidden></p>
+        <p class="overlay-meta" id="flux-overlay-meta" hidden></p>
+        <div class="overlay-actions">
+          <button type="button" id="flux-start">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-shell-neon" class="game-shell hidden" hidden>
+    <div class="frame">
+      <header class="hud">
+        <div class="brand-block">
+          <div class="brand">Neon Catch</div>
+          <div class="rank-line" id="neon-tagline">Orbs · paddle · three lives</div>
+        </div>
+        <div class="stats">
+          <span id="neon-score">0</span>
+          <span class="sep">·</span>
+          <span id="neon-lives">♥♥♥</span>
+          <span class="sep">·</span>
+          <span class="best-wrap">best <span id="neon-best">0</span></span>
+        </div>
+      </header>
+      <canvas
+        id="game-neon"
+        tabindex="0"
+        width="900"
+        height="600"
+        role="img"
+        aria-label="Neon Catch: move the paddle to catch falling orbs. Mouse or A D or arrows. P or Space pause. Enter or Start from menu."
+      ></canvas>
+      <p class="hint" id="neon-hint">
+        Mouse or A D / arrows · catch orbs · P pause · Enter / Start
+      </p>
+      <footer class="footer">
+        <button type="button" class="btn-back" data-arcade-back>← Arcade</button>
+        <button type="button" id="neon-mute" aria-pressed="false">Sound on</button>
+      </footer>
+    </div>
+    <div id="neon-overlay" class="overlay hidden">
+      <div class="panel">
+        <h1 id="neon-overlay-title">Neon Catch</h1>
+        <p id="neon-overlay-text"></p>
+        <p class="score-line" id="neon-overlay-score" hidden></p>
+        <div class="overlay-actions">
+          <button type="button" id="neon-start">Start</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div id="game-shell-tycoon" class="game-shell hidden" hidden>
+
+  <div id="tycoon-app">
+    <header class="top-bar">
+      <button type="button" class="btn-back tycoon-arcade-back" data-arcade-back>← Arcade</button>
+      <div class="brand">
+        <span class="logo" aria-hidden="true">◆</span>
+        <div class="brand-text">
+          <h1>Sandbox Tycoon</h1>
+          <span class="tagline">Build paths · Grow crowds · Balance the books</span>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat" title="Cash on hand">
+          <span class="stat-label">Funds</span>
+          <span id="tycoon-money" class="stat-value mono">$0</span>
+        </div>
+        <div class="stat" title="Guests in park vs capacity">
+          <span class="stat-label">Guests</span>
+          <span id="tycoon-guests" class="stat-value mono">0</span>
+        </div>
+        <div class="stat" title="0–100 · rides, crowds, pricing">
+          <span class="stat-label">Satisfaction</span>
+          <span id="tycoon-satisfaction" class="stat-value mono">—</span>
+        </div>
+        <div class="stat" title="Net income per minute">
+          <span class="stat-label">Net / min</span>
+          <span id="tycoon-income" class="stat-value mono">$0</span>
+        </div>
+      </div>
+      <div class="time-wrap">
+        <button type="button" id="tycoon-btn-tutorial" class="btn icon" title="Quick tutorial (?)" aria-label="Quick tutorial">?</button>
+        <label class="sound-toggle" title="UI sounds">
+          <input type="checkbox" id="tycoon-sound-on" />
+          <span class="sound-label">Sound</span>
+        </label>
+        <button type="button" id="tycoon-btn-pause" class="btn icon" title="Pause (Space)">⏸</button>
+        <div class="speed" role="group" aria-label="Game speed">
+          <button type="button" class="btn speed-btn" data-speed="1">1×</button>
+          <button type="button" class="btn speed-btn active" data-speed="2">2×</button>
+          <button type="button" class="btn speed-btn" data-speed="4">4×</button>
+        </div>
+      </div>
+    </header>
+
+    <aside class="build-panel">
+      <h2>Build</h2>
+      <p class="hint">Pan with <kbd>WASD</kbd>, arrows, edge of map, or drag. <strong>Click the map</strong> with no tool selected to inspect earnings. Choose a tool to <strong>click</strong> or <strong>drag</strong> to build.</p>
+      <div id="tycoon-tools" class="tools"></div>
+
+      <h2>Park</h2>
+      <div class="control-block">
+        <label class="control-label" for="tycoon-ticket-slider">Ticket price</label>
+        <div class="slider-row">
+          <input type="range" id="tycoon-ticket-slider" min="50" max="200" value="100" />
+          <span id="tycoon-ticket-value" class="mono">100%</span>
+        </div>
+        <p class="tiny">Higher prices earn more per guest but hurt satisfaction.</p>
+      </div>
+
+      <div class="metrics" id="tycoon-metrics">
+        <div class="metric"><span>Appeal</span><strong id="tycoon-m-appeal">0</strong></div>
+        <div class="metric"><span>Connected</span><strong id="tycoon-m-connected">0</strong></div>
+        <div class="metric"><span>Gross / min</span><strong id="tycoon-m-gross" class="positive">$0</strong></div>
+        <div class="metric"><span>Upkeep / min</span><strong id="tycoon-m-upkeep">$0</strong></div>
+      </div>
+
+      <h2>Map</h2>
+      <button type="button" id="tycoon-btn-expand" class="btn block">Expand land</button>
+      <p class="tiny mono" id="tycoon-map-size"></p>
+      <button type="button" id="tycoon-btn-center" class="btn block subtle">Recenter view</button>
+    </aside>
+
+    <main class="canvas-wrap" id="tycoon-canvas-wrap">
+      <canvas id="game-tycoon" width="1200" height="800"></canvas>
+      <canvas id="tycoon-minimap" class="minimap" width="160" height="120" aria-hidden="true"></canvas>
+      <div id="tycoon-toast" class="toast" hidden></div>
+    </main>
+
+    <dialog id="tycoon-tutorial-dialog" class="tutorial-dialog" aria-labelledby="tycoon-tutorial-title">
+      <button type="button" class="dialog-close" id="tycoon-tutorial-dialog-close" aria-label="Close">×</button>
+      <h2 id="tycoon-tutorial-title" class="tutorial-title">Quick tutorial</h2>
+      <ol class="tutorial-steps">
+        <li>
+          <strong>Move the view</strong> — The camera is not locked. Use <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or the
+          <strong>arrow keys</strong> to pan. <strong>Drag</strong> with Alt, right mouse, or middle mouse. Move the cursor to the
+          <strong>edge</strong> of the map to scroll. <strong>Mouse wheel</strong> zooms in and out.
+        </li>
+        <li>
+          <strong>Build & inspect</strong> — Choose a tool, then <strong>click</strong> or <strong>drag</strong> on grass to place.
+          With <strong>no tool</strong> selected, <strong>click any built tile</strong> to see lifetime revenue and upkeep. Tap <span class="mono">i</span> on build rows for blueprints. Connect <strong>paths</strong> from the <strong>gate</strong> to rides and shops.
+        </li>
+        <li>
+          <strong>Run the park</strong> — Adjust <strong>ticket price</strong> (higher earns more but can hurt satisfaction). Watch
+          <strong>guests</strong>, <strong>satisfaction</strong>, and <strong>net / min</strong>. Pause or change speed in the header. Use the
+          <strong>minimap</strong> (corner) to see where you are.
+        </li>
+      </ol>
+      <label class="tutorial-dont">
+        <input type="checkbox" id="tycoon-tutorial-hide-next" checked />
+        Don’t show this again
+      </label>
+      <button type="button" class="btn tutorial-cta" id="tycoon-tutorial-dismiss">Let’s play</button>
+    </dialog>
+
+    <dialog id="tycoon-tile-inspect-dialog" class="structure-dialog" aria-labelledby="tycoon-tile-inspect-title">
+      <button type="button" class="dialog-close" id="tycoon-tile-inspect-close" aria-label="Close">×</button>
+      <h3 id="tycoon-tile-inspect-title" class="dialog-title"></h3>
+      <p id="tycoon-tile-inspect-sub" class="dialog-kind"></p>
+      <dl id="tycoon-tile-inspect-stats" class="dialog-stats"></dl>
+      <p id="tycoon-tile-inspect-note" class="dialog-blurb"></p>
+    </dialog>
+
+    <dialog id="tycoon-structure-dialog" class="structure-dialog" aria-labelledby="tycoon-structure-dialog-title">
+      <button type="button" class="dialog-close" id="tycoon-structure-dialog-close" aria-label="Close">×</button>
+      <h3 id="tycoon-structure-dialog-title" class="dialog-title"></h3>
+      <p id="tycoon-structure-dialog-kind" class="dialog-kind"></p>
+      <dl id="tycoon-structure-dialog-stats" class="dialog-stats"></dl>
+      <p id="tycoon-structure-dialog-blurb" class="dialog-blurb"></p>
+    </dialog>
+
+    <footer class="help-bar">
+      <span><kbd>?</kbd> tutorial</span>
+      <span><kbd>WASD</kbd> / arrows pan</span>
+      <span><kbd>1</kbd>–<kbd>9</kbd> tools</span>
+      <span><kbd>Space</kbd> pause</span>
+      <span><kbd>Esc</kbd> clear tool</span>
+      <span><kbd>B</kbd> bulldoze</span>
+      <span>Click map (no tool) · inspect</span>
+      <span>Edge pan · drag pan · wheel / <kbd>+</kbd><kbd>−</kbd> zoom</span>
+    </footer>
+  </div>
+  
+
+  </div>
+
+
+  <div id="game-shell-maze" class="game-shell hidden" hidden>
+    <div class="frame">
+      <div class="maze-app">
+        <header class="maze-header">
+          <h1>Maze</h1>
+          <p class="maze-tagline">
+            You carry the only light — explore the dark maze, find the green goal, then step out through EXIT.
+          </p>
+        </header>
+
+        <div class="maze-toolbar">
+          <div class="maze-toolbar-cluster">
+            <button type="button" class="btn-back maze-btn maze-btn-ghost" data-arcade-back>← Arcade</button>
+            <button type="button" id="maze-btn-new" class="maze-btn maze-btn-primary">New maze</button>
+            <div class="maze-size-group" role="group" aria-label="Maze size">
+              <button type="button" class="maze-btn maze-btn-ghost maze-size-btn" data-cols="21" data-rows="21" aria-pressed="false">
+                Small
+              </button>
+              <button type="button" class="maze-btn maze-btn-ghost maze-size-btn" data-cols="31" data-rows="31" aria-pressed="true">
+                Medium
+              </button>
+              <button type="button" class="maze-btn maze-btn-ghost maze-size-btn" data-cols="41" data-rows="41" aria-pressed="false">
+                Large
+              </button>
+            </div>
+          </div>
+          <div class="maze-stats" aria-live="polite" aria-atomic="true">
+            <span id="maze-stat-moves">0 moves</span>
+            <span id="maze-stat-par" class="maze-par hidden">Par —</span>
+            <span id="maze-stat-time" class="mono">0:00</span>
+          </div>
+          <button type="button" id="maze-btn-sound" class="maze-btn maze-btn-ghost maze-sound-btn" aria-pressed="true" aria-label="Sound: on">
+            Sound on
+          </button>
+        </div>
+
+        <div id="maze-canvas-wrap">
+          <canvas
+            id="game-maze"
+            width="800"
+            height="800"
+            tabindex="0"
+            role="application"
+            aria-label="Maze. Arrow keys or WASD. Find EXIT on the border and the green goal."
+          ></canvas>
+          <div class="maze-dpad" aria-hidden="true">
+            <button type="button" class="maze-dpad-btn maze-dpad-up" data-dx="0" data-dy="-1" tabindex="-1" title="Up">↑</button>
+            <button type="button" class="maze-dpad-btn maze-dpad-left" data-dx="-1" data-dy="0" tabindex="-1" title="Left">←</button>
+            <button type="button" class="maze-dpad-btn maze-dpad-right" data-dx="1" data-dy="0" tabindex="-1" title="Right">→</button>
+            <button type="button" class="maze-dpad-btn maze-dpad-down" data-dx="0" data-dy="1" tabindex="-1" title="Down">↓</button>
+          </div>
+          <div id="maze-win-overlay" class="maze-win-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="maze-win-title" aria-describedby="maze-win-stats">
+            <div class="maze-overlay-card">
+              <p id="maze-win-stars" class="maze-win-stars" aria-label=""></p>
+              <h2 id="maze-win-title">You escaped</h2>
+              <p id="maze-win-stats" class="maze-win-stats"></p>
+              <div class="maze-overlay-actions">
+                <button type="button" id="maze-btn-again" class="maze-btn maze-btn-primary">Play again</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="maze-footer">
+          <p class="maze-hint">Torch lights only nearby tiles · R new maze · M mute · Esc dismiss win · Click maze to focus</p>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-shell-jump" class="game-shell hidden" hidden>
+    <div class="jump-game-mount">
+      <button type="button" class="btn-back jump-arcade-back" data-arcade-back>← Arcade</button>
+<div id="jump-ui">
+      <div id="jump-main-menu" class="game-menu">
+        <h1 class="game-menu-title">Jump</h1>
+        <p class="game-menu-sub">Platform hopper</p>
+        <button type="button" id="jump-menu-play-btn" class="game-menu-btn game-menu-btn-primary">Play</button>
+      </div>
+      <div id="jump-mode-menu" class="game-menu hidden">
+        <h2 class="game-menu-title">Choose mode</h2>
+        <div class="game-menu-actions">
+          <button type="button" id="jump-menu-campaign-btn" class="game-menu-btn game-menu-btn-primary">Campaign</button>
+          <button type="button" id="jump-menu-random-btn" class="game-menu-btn">Random</button>
+          <button type="button" id="jump-menu-editor-btn" class="game-menu-btn">Level editor</button>
+        </div>
+        <button type="button" id="jump-menu-back-btn" class="game-menu-btn game-menu-btn-ghost">Back</button>
+      </div>
+      <div id="jump-hud">
+        <span id="jump-community-hud" class="community-hud hidden" aria-live="polite"></span>
+        <span id="jump-level-hud" aria-live="polite"></span>
+        <span id="jump-hint">WASD or arrows · Space to jump · Esc pause · R restarts stage · Win: R / button = next · Amber = switch · Purple = lift · Pale blue = ice · Launchers: green → · orange ← · blue ↑ · Red walls · Gray ball/spikes = respawn · Mauve haze = slow + low jump</span>
+      </div>
+      <div id="jump-pause-menu" class="game-menu hidden" role="dialog" aria-modal="true" aria-labelledby="jump-pause-menu-title">
+        <h2 id="jump-pause-menu-title" class="game-menu-title">Paused</h2>
+        <p class="game-menu-sub">Take a break or return to the title screen.</p>
+        <div class="game-menu-actions">
+          <button type="button" id="jump-pause-continue-btn" class="game-menu-btn game-menu-btn-primary">Continue</button>
+          <button type="button" id="jump-pause-editor-btn" class="game-menu-btn hidden">Back to editor</button>
+          <button type="button" id="jump-pause-menu-btn" class="game-menu-btn">Back to menu</button>
+        </div>
+      </div>
+      <div id="jump-level-editor" class="level-editor hidden" aria-hidden="true">
+        <div class="level-editor-top">
+          <span class="level-editor-actions">
+            <button
+              type="button"
+              id="jump-editor-toolbox-toggle"
+              class="game-menu-btn"
+              aria-expanded="true"
+              aria-controls="jump-editor-palette"
+            >
+              Hide toolbox
+            </button>
+            <button type="button" id="jump-editor-playtest-btn" class="game-menu-btn game-menu-btn-primary">Play test</button>
+            <button type="button" id="jump-editor-new-btn" class="game-menu-btn">New level</button>
+            <button type="button" id="jump-editor-save-btn" class="game-menu-btn">Save</button>
+            <select id="jump-editor-saved-select" class="editor-saved-select" aria-label="Load saved level" title="Load a level you saved in this browser">
+              <option value="">Load saved…</option>
+            </select>
+            <button type="button" id="jump-editor-export-btn" class="game-menu-btn">Copy JSON</button>
+            <button type="button" id="jump-editor-import-btn" class="game-menu-btn">Paste JSON</button>
+            <button type="button" id="jump-editor-publish-btn" class="game-menu-btn game-menu-btn-primary">Publish</button>
+            <button type="button" id="jump-editor-done-btn" class="game-menu-btn game-menu-btn-ghost">Done</button>
+          </span>
+        </div>
+        <div class="level-editor-info-row">
+          <button
+            type="button"
+            id="jump-editor-info-btn"
+            class="game-menu-btn"
+            aria-expanded="false"
+            aria-controls="jump-editor-info-panel"
+          >
+            Info
+          </button>
+        </div>
+        <div id="jump-editor-info-panel" class="level-editor-hint" role="region" aria-label="Level editor help" hidden>
+          Choose a tool in the sidebar, then click the game to the left. Gravity switches work when axis-aligned in play (rotated gravity tiles are ignored). Glue: click one object, then the other — wall + platform in either order; slow zone + platform (parent must be a platform); two platforms use the elevator as the parent when only one moves, otherwise the first click follows the second. Click a glued piece alone to unglue. Rotate: 15° per click (Shift reverses angle) — platforms (including elevators), walls, spikes, slow zones, goal, wrecking ball. Move / Scale: normally platforms win when overlapping spikes or a wrecking ball — hold Shift while clicking to grab the hazard instead. Scale: drag edges/corners on platforms, walls, slow zones, goals, spike strips, or wrecking balls (radius). Move / pan as before · 8px grid
+        </div>
+        <div id="jump-editor-palette" class="editor-palette" role="toolbar" aria-label="Place level pieces">
+          <div class="editor-palette-section">
+            <span class="editor-palette-heading">Platforms</span>
+            <div class="editor-palette-chips">
+              <button type="button" class="editor-palette-chip active" data-place-kind="plat-solid" title="Standard ground or ledge">Solid platform</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-ice" title="Low friction">Ice platform</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-switch" title="Toggles on a timer">Switch platform</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-elevator" title="Moves up and down">Elevator platform</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-launcher-forward" title="Launches right">Launcher forward</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-launcher-backward" title="Launches left">Launcher backward</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-launcher-up" title="Launches upward">Launcher up</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-grav-d" title="Touching sets gravity downward">Gravity ↓</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-grav-u" title="Touching sets gravity upward">Gravity ↑</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-grav-l" title="Touching sets gravity left">Gravity ←</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="plat-grav-r" title="Touching sets gravity right">Gravity →</button>
+            </div>
+          </div>
+          <div class="editor-palette-section">
+            <span class="editor-palette-heading">Hazards</span>
+            <div class="editor-palette-chips">
+              <button type="button" class="editor-palette-chip" data-place-kind="wall" title="Red wall — touch respawns">Wall</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="wrecking-ball" title="Click above a platform to hang the ball">Wrecking ball</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="spikes" title="Click a platform top to add spikes">Spikes</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="debuff-zone" title="Slows move and weakens jump — no damage">Slow zone</button>
+            </div>
+          </div>
+          <div class="editor-palette-section">
+            <span class="editor-palette-heading">Tools</span>
+            <div class="editor-palette-chips">
+              <button type="button" class="editor-palette-chip" data-place-kind="erase" title="Remove piece under cursor">Erase</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="move" title="Drag to reposition. Shift+click picks spikes/ball over platform when overlapping">Move</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="glue" title="Click two objects to glue (wall+platform any order; slow zone+platform; two platforms: elevator parent if one moves, else first follows second). Click glued item alone to unglue">Glue</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="rotate" title="Click any piece — 15° per click (Shift reverses). Pivot is rect center (ball: swing axis)">Rotate</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="scale" title="Drag an edge or corner to resize (8px grid). Platforms, walls, zones, goals, spikes, wrecking ball. Shift+click picks hazard over platform when overlapping">Scale</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="spawn" title="Player start position">Spawn</button>
+              <button type="button" class="editor-palette-chip" data-place-kind="goal" title="Level exit">Goal</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="jump-overlay" class="hidden">
+        <h1 id="jump-overlay-title"></h1>
+        <p id="jump-overlay-msg"></p>
+        <button type="button" id="jump-restart-btn">Play again</button>
+      </div>
+    </div>
+    <canvas id="game-jump" width="960" height="540" tabindex="0" role="application" aria-label="Jump platformer. WASD or arrows, Space to jump."></canvas>
+    <div id="jump-loading" class="loading" aria-live="polite" aria-busy="false">
+      <div class="loading-inner">
+        <p class="loading-title">Building level…</p>
+        <div class="loading-cube-scene" aria-hidden="true">
+          <div class="loading-cube">
+            <div class="lc-face lc-front"></div>
+            <div class="lc-face lc-back"></div>
+            <div class="lc-face lc-right"></div>
+            <div class="lc-face lc-left"></div>
+            <div class="lc-face lc-top"></div>
+            <div class="lc-face lc-bottom"></div>
+          </div>
+        </div>
+        <button type="button" id="jump-loading-cancel-btn" class="loading-cancel">Back to menu</button>
+      </div>
+    </div>
+    <div id="jump-mobile-controls" class="jump-mobile-controls" aria-label="Touch controls">
+      <button type="button" class="jump-mctrl" data-key="ArrowLeft" aria-label="Move left">◀</button>
+      <button type="button" class="jump-mctrl jump-mctrl-jump" data-key="Space" aria-label="Jump">Jump</button>
+      <button type="button" class="jump-mctrl" data-key="ArrowRight" aria-label="Move right">▶</button>
+    </div>
+    </div>
+  </div>
+
+  <script src="arcade.js"></script>
+  <script src="game.js"></script>
+  <script src="flux-lane.js"></script>
+  <script src="neon-catch.js"></script>
+  <script src="maze-game.js"></script>
+  <script src="jump-levels.js"></script>
+  <script src="jump-game.js"></script>
+  <script src="tycoon-game.js"></script>
+</body>
+</html>
